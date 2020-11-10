@@ -9,6 +9,7 @@ output: github_document
 
 library(tidyverse)
 library(rvest)
+library(httr)
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
@@ -21,4 +22,24 @@ scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 
 ```
+
+## Problem 1
+
+Import the dataset
+
+```{r}
+homicide_df = 
+  read_csv("data/homicide-data.txt")
+```
+
+
+
+
+
+
+
+
+
+
+
 
