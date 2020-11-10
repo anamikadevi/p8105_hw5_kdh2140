@@ -25,19 +25,79 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Problem 1
 
-Import the dataset
+#### Import the dataset
+
+```{r message=FALSE, warning=FALSE}
+homicide_df = 
+  read_csv("data/homicide-data.txt") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest" ~ "unsolved",
+      disposition == "Closed by arrest" ~ "solved"
+    )
+  ) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL")
+```
+
+#### Data description
+
+This dataset was collected by the Washington post with a wide range of demographic information about each homicide, the victim, and the outcome of the investigation. It was obtained from the purposes of this report from a publicly available github repository. 
+
+#### Summary Statistics 
+
+```{r message=FALSE, warning=FALSE}
+aggregate_df = 
+homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    hom_total = n(), 
+    hom_unsolved = sum(resolved == "unsolved")
+  )
+```
+
+#### Prop testing
 
 ```{r}
-homicide_df = 
-  read_csv("data/homicide-data.txt")
+prop.test(
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved), 
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
+  broom::tidy()
+```
+
+#### Iteration
+
+```{r}
+results_df = 
+  aggregate_df %>% 
+  mutate(
+    
+    prop_tests = map2(.x = hom_unsolved, 
+                      .y = hom_total, 
+                      ~prop.test(x = .x, n = .y)), 
+    
+    tidy_tests = map(.x = prop_tests, 
+                     ~broom::tidy(.x))
+  ) %>% 
+  select(-prop_tests) %>% 
+  unnest(tidy_tests) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+#### Subsequent Data Exploration
+
+```{r}
+results_df %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+           geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high))
 ```
 
 
-
-
-
-
-
+## Problem 2
 
 
 
