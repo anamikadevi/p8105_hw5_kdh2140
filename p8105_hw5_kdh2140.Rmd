@@ -94,7 +94,8 @@ results_df %>%
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
   ggplot(aes(x = city_state, y = estimate)) +
            geom_point() +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high))
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 
@@ -114,20 +115,20 @@ path_df =
   select(-x, -y) %>% 
   pivot_longer(week_1:week_8, 
                names_to = "week",
+               names_prefix = "week_",
                values_to = "observation")
 ```
 
-describe process
+The importing and data tidying process begins by creating a tibble of the file names and adding the relative path to each file name. The data is then unnested and the file name is separated into useful columns (study_arm, subject_id). Lastly, the data is pivoted longer to create week and observation columns. 
 
 #### Creating a spaghetti plot
 
 ```{r}
 path_df %>% 
-  group_by(subject_id) %>% 
-  ggplot(aes(x = week, y = observation, color = study_arm)) +
-  geom_path()
-
-######help
+  group_by(study_arm) %>% 
+  ggplot(aes(x = week, y = observation, color = subject_id, group = subject_id)) +
+  geom_line() + 
+  facet_grid(. ~ study_arm)
 ```
 
 describe plot
