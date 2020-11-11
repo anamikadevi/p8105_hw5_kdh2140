@@ -170,12 +170,48 @@ sim_results =
   unnest(estimate_df)
 ```
 
+#### Plots
 
+Y-axis: Proportion of times the null was rejected 
 
+X-axis: true value of mu
 
+```{r message=FALSE, warning=FALSE}
+sim_results %>% 
+   mutate(
+    results = case_when(
+      p.value < 0.05 ~ "rejected",
+       p.value >= 0.05 ~ "not_rejected")) %>% 
+  group_by(mu) %>% 
+  count(results)
 
+###help
+```
 
+Y-axis: average estimate of mu
 
+X-axis: true value of mu
 
+```{r message=FALSE, warning=FALSE}
+sim_results %>% 
+  group_by(mu) %>% 
+  summarize(
+    average_mu = mean(estimate)) %>% 
+  ggplot(aes(x = mu, y = average_mu)) +
+  geom_point()
+```
 
+Y-axis: average estimate of mu among null rejected
+
+X-axis: true value of mu
+
+```{r message=FALSE, warning=FALSE}
+sim_results %>% 
+  filter(p.value < 0.05) %>% 
+  group_by(mu) %>% 
+  summarize(
+    average_mu = mean(estimate)) %>% 
+  ggplot(aes(x = mu, y = average_mu)) +
+  geom_point()
+```
 
