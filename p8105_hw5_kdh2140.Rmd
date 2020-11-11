@@ -183,15 +183,24 @@ X-axis: true value of mu
 
 ```{r plot_3a, message=FALSE, warning=FALSE}
 sim_results %>% 
+  group_by(mu) %>% 
    mutate(
-    results = case_when(
-      p.value < 0.05 ~ "rejected",
-       p.value >= 0.05 ~ "not_rejected")) %>% 
-  mutate(results = as.factor(results))
-  
+     results = case_when(
+     p.value < 0.05 ~ "rejected",
+     p.value >= 0.05 ~ "not_rejected"), 
+     results = as.factor(results)) %>% 
+  summarize(proportion = sum(results == "not_rejected") / sum(results == "rejected")) %>% 
+  ggplot(aes(x = mu, y = proportion)) +
+  geom_point() +
+  labs(
+          title = "Proportion: Null Hypothesis Not Rejected / Hypothesis Rejected ",
+          x = "True Value of mu",
+          y = "Hypothesis outcome proportion",
+          caption = "Rejected over not rejected provides values of infinity for mu = 5, 6"
+          )
 ```
 
-I wish the above plot worked. 
+The majority of hypothesis tests where the null hypothesis was not rejected lie between mu = 0 and mu = 2, as the true outcome would expect for the null hypothesis to not be rejected for mu = 0 and random sampling distribution would also allow for some estimated values of mu = 0 for true mu = 1 or 2. 
 
 ```{r plot_3b, message=FALSE, warning=FALSE}
 all = sim_results %>% 
@@ -224,7 +233,7 @@ all / some
 
 The above set of plots represent the estimated value of mu for the sim_results dataset. The **first plot** includes all estimated values of mu, significant or not at alpha = 0.05. The **second plot** only includes the estimated values of mu that are significant at an alpha = 0.05. 
 
-The sample average of mu across tests for which the null is rejected is not aprroximately equal to the true value of mu, as it only includes values that would be large enough to elicit a significance level larger than 0.05. The sample average of mu across tests is equal to the true value of mu in the first plot, which includes all values and allows for the a true calculation of mu derived from all samples. Note that when all samples are significant, such as mu = 4, 5, or 6, the average estimated value of mu in the second plot is equal to the true value. 
+The sample average of mu across tests for which the null is rejected is not approximately equal to the true value of mu, as it only includes observations that  are different enough from 0 to elicit a significance level larger than 0.05. For samples in which the true mean is closer to 0 (i.e. 1, 2), there are more samples that are not rejected, which heightens the average estimate of mu for a filtered dataset of only values of h0 that are rejected. The sample average of mu across tests is equal to the true value of mu in the first plot, which includes all values and allows for the a true calculation of mu derived from all samples. 
 
 
 
