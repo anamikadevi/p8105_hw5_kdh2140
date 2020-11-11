@@ -99,9 +99,41 @@ results_df %>%
 
 ## Problem 2
 
-```{r}
-list.files("./data")
+#### Data tidying
+
+```{r message=FALSE, warning=FALSE}
+path_df = 
+  tibble(path = list.files("./data")) %>% 
+  mutate(path = str_c("data/", path),
+         data = map(path, read_csv)) %>% 
+  unnest(data) %>% 
+  separate(path, into = c("x", "study_arm"), sep = 5) %>% 
+  separate(study_arm, into = c("study_arm", "subject_id"), sep = "_") %>% 
+  separate(subject_id, into = c("subject_id", "y"), sep = 2) %>% 
+  select(-x, -y) %>% 
+  pivot_longer(week_1:week_8, 
+               names_to = "week",
+               values_to = "observation")
 ```
+
+#### Creating a spaghetti plot
+
+```{r}
+path_df %>% 
+  group_by(subject_id) %>% 
+  ggplot(aes(x = week, y = observation, color = study_arm)) +
+  geom_path()
+
+######help
+```
+
+
+
+
+
+
+
+
 
 
 
