@@ -10,6 +10,7 @@ output: github_document
 library(tidyverse)
 library(rvest)
 library(httr)
+library(patchwork)
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
@@ -28,7 +29,7 @@ set.seed(1)
 
 #### Import the dataset
 
-```{r message=FALSE, warning=FALSE}
+```{r import_1, message=FALSE, warning=FALSE}
 homicide_df = 
   read_csv("homicide-data.txt") %>% 
   mutate(
@@ -49,7 +50,7 @@ This dataset was collected by the Washington post with a wide range of demograph
 
 #### Summary Statistics 
 
-```{r message=FALSE, warning=FALSE}
+```{r tidy_1, message=FALSE, warning=FALSE}
 aggregate_df = 
 homicide_df %>% 
   group_by(city_state) %>% 
@@ -61,7 +62,7 @@ homicide_df %>%
 
 #### Prop testing
 
-```{r}
+```{r prop_1}
 prop.test(
   aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved), 
   aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
@@ -70,7 +71,7 @@ prop.test(
 
 #### Iteration
 
-```{r}
+```{r iter_1}
 results_df = 
   aggregate_df %>% 
   mutate(
@@ -89,7 +90,7 @@ results_df =
 
 #### Data Exploration
 
-```{r}
+```{r eda_1}
 results_df %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
   ggplot(aes(x = city_state, y = estimate)) +
@@ -103,7 +104,7 @@ results_df %>%
 
 #### Data tidying
 
-```{r message=FALSE, warning=FALSE}
+```{r import_2, message=FALSE, warning=FALSE}
 path_df = 
   tibble(path = list.files("./data")) %>% 
   mutate(path = str_c("data/", path),
@@ -123,7 +124,7 @@ The importing and data tidying process begins by creating a tibble of the file n
 
 #### Creating a spaghetti plot
 
-```{r}
+```{r plot_2}
 path_df %>% 
   group_by(study_arm) %>% 
   ggplot(aes(x = week, y = observation, color = subject_id, group = subject_id)) +
@@ -131,13 +132,13 @@ path_df %>%
   facet_grid(. ~ study_arm)
 ```
 
-describe plot
+The observations for both the control and experimental arm of the study begin around 0 - 2.5, with the experimental arm having a slightly larger range. The control has some variance over the eight weeks, but maintains and ends roughly around the same range as it began, 0 - 2.5. The experimental group drastically increases over the 8 weeks, with some variance on the individual level, but ends with a higher overall range of 2.5 - 7.5. 
 
 ## Problem 3
 
 #### Function to simulate data and perform t-test
 
-```{r}
+```{r func_3}
 sim_t_test = function(mu) {
   
   sim_data =   
@@ -151,12 +152,13 @@ sim_t_test = function(mu) {
     select(estimate, p.value)
   
 }
-
 ```
+
+The above function creates a tibble generated from a normal distribution of size 30 and standard deviation 5. It then uses that data to perform a t-test at alpha = 0.05. Only the estimate and p-value of the t-test are retained. 
 
 #### Simulate data
 
-```{r, cache = TRUE}
+```{r sim_3, cache = TRUE}
 
 sim_results = 
   
@@ -171,48 +173,62 @@ sim_results =
   unnest(estimate_df)
 ```
 
+The above code runs a simulation of the function previously created, sim_t_test, with various values of mu for 5000 times. It then binds the rows of the output and the unnests the data. 
+
 #### Plots
 
 Y-axis: Proportion of times the null was rejected 
 
 X-axis: true value of mu
 
-```{r message=FALSE, warning=FALSE}
+```{r plot_3a, message=FALSE, warning=FALSE}
 sim_results %>% 
    mutate(
     results = case_when(
       p.value < 0.05 ~ "rejected",
        p.value >= 0.05 ~ "not_rejected")) %>% 
-  group_by(mu) %>% 
-  count(results)
-
-###help
+  mutate(results = as.factor(results))
+  
 ```
 
-Y-axis: average estimate of mu
+I wish the above plot worked. 
 
-X-axis: true value of mu
+```{r plot_3b, message=FALSE, warning=FALSE}
+all = sim_results %>% 
+        group_by(mu) %>% 
+        summarize(
+          average_mu = mean(estimate)) %>% 
+        ggplot(aes(x = mu, y = average_mu)) +
+        geom_point() +
+          labs(
+          title = "Average Estimate of mu, all values",
+          x = "True Value of mu",
+          y = "Average Estimate of mu"
+          )
 
-```{r message=FALSE, warning=FALSE}
-sim_results %>% 
-  group_by(mu) %>% 
-  summarize(
-    average_mu = mean(estimate)) %>% 
-  ggplot(aes(x = mu, y = average_mu)) +
-  geom_point()
+some = sim_results %>% 
+        filter(p.value < 0.05) %>% 
+        group_by(mu) %>% 
+        summarize(
+          average_mu = mean(estimate)) %>% 
+        ggplot(aes(x = mu, y = average_mu)) +
+        geom_point() +
+          labs(
+          title = "Average Estimate of mu, H0 rejected",
+          x = "True Value of mu",
+          y = "Average Estimate of mu"
+          )
+
+all / some
 ```
 
-Y-axis: average estimate of mu among null rejected
+The above set of plots represent the estimated value of mu for the sim_results dataset. The **first plot** includes all estimated values of mu, significant or not at alpha = 0.05. The **second plot** only includes the estimated values of mu that are significant at an alpha = 0.05. 
 
-X-axis: true value of mu
+The sample average of mu across tests for which the null is rejected is not aprroximately equal to the true value of mu, as it only includes values that would be large enough to elicit a significance level larger than 0.05. The sample average of mu across tests is equal to the true value of mu in the first plot, which includes all values and allows for the a true calculation of mu derived from all samples. Note that when all samples are significant, such as mu = 4, 5, or 6, the average estimated value of mu in the second plot is equal to the true value. 
 
-```{r message=FALSE, warning=FALSE}
-sim_results %>% 
-  filter(p.value < 0.05) %>% 
-  group_by(mu) %>% 
-  summarize(
-    average_mu = mean(estimate)) %>% 
-  ggplot(aes(x = mu, y = average_mu)) +
-  geom_point()
-```
+
+
+
+
+
 
