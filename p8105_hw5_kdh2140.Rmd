@@ -118,9 +118,11 @@ path_df =
                names_to = "week",
                names_prefix = "week_",
                values_to = "observation")
+
+head(path_df)
 ```
 
-The importing and data tidying process begins by creating a tibble of the file names and adding the relative path to each file name. The data is then unnested and the file name is separated into useful columns (study_arm, subject_id). Lastly, the data is pivoted longer to create week and observation columns. 
+The importing and data tidying process begins by creating a tibble of the file names and adding the relative path to each file name. The data is umported using the map function to read csv for each entry. The data is then unnested and the file name is separated into useful columns (study_arm, subject_id). Lastly, the data is pivoted longer to create week and observation columns. The first few observations are displayed for reference. 
 
 #### Creating a spaghetti plot
 
@@ -129,7 +131,10 @@ path_df %>%
   group_by(study_arm) %>% 
   ggplot(aes(x = week, y = observation, color = subject_id, group = subject_id)) +
   geom_line() + 
-  facet_grid(. ~ study_arm)
+  facet_grid(. ~ study_arm) +
+  labs(
+    title = "Observations over time by arm"
+  )
 ```
 
 The observations for both the control and experimental arm of the study begin around 0 - 2.5, with the experimental arm having a slightly larger range. The control has some variance over the eight weeks, but maintains and ends roughly around the same range as it began, 0 - 2.5. The experimental group drastically increases over the 8 weeks, with some variance on the individual level, but ends with a higher overall range of 2.5 - 7.5. 
@@ -173,21 +178,19 @@ sim_results =
   unnest(estimate_df)
 ```
 
-The above code runs a simulation of the function previously created, sim_t_test, with various values of mu for 5000 times. It then binds the rows of the output and the unnests the data. 
+The above code runs a simulation of the function previously created, sim_t_test, with various values of mu, 5000 times over. It then binds the rows of the output and unnests the data. 
 
 #### Plots
 
-Y-axis: Proportion of times the null was rejected 
-
-X-axis: true value of mu
+##### Plot #1: Proportion: Null Hypothesis Not Rejected / Hypothesis Rejected 
 
 ```{r plot_3a, message=FALSE, warning=FALSE}
 sim_results %>% 
   group_by(mu) %>% 
    mutate(
      results = case_when(
-     p.value < 0.05 ~ "rejected",
-     p.value >= 0.05 ~ "not_rejected"), 
+      p.value < 0.05 ~ "rejected",
+      p.value >= 0.05 ~ "not_rejected"), 
      results = as.factor(results)) %>% 
   summarize(proportion = sum(results == "not_rejected") / sum(results == "rejected")) %>% 
   ggplot(aes(x = mu, y = proportion)) +
@@ -201,6 +204,8 @@ sim_results %>%
 ```
 
 The majority of hypothesis tests where the null hypothesis was not rejected lie between mu = 0 and mu = 2, as the true outcome would expect for the null hypothesis to not be rejected for mu = 0 and random sampling distribution would also allow for some estimated values of mu = 0 for true mu = 1 or 2. 
+
+##### Plots #2 & #3: Average Estimate Values of mu
 
 ```{r plot_3b, message=FALSE, warning=FALSE}
 all = sim_results %>% 
@@ -231,7 +236,7 @@ some = sim_results %>%
 all / some
 ```
 
-The above set of plots represent the estimated value of mu for the sim_results dataset. The **first plot** includes all estimated values of mu, significant or not at alpha = 0.05. The **second plot** only includes the estimated values of mu that are significant at an alpha = 0.05. 
+The above set of plots represent the average estimated value of mu by true mu for the sim_results dataset. The **first plot** includes all estimated values of mu, significant or not at alpha = 0.05. The **second plot** only includes the estimated values of mu that are significant at an alpha = 0.05. 
 
 The sample average of mu across tests for which the null is rejected is not approximately equal to the true value of mu, as it only includes observations that  are different enough from 0 to elicit a significance level larger than 0.05. For samples in which the true mean is closer to 0 (i.e. 1, 2), there are more samples that are not rejected, which heightens the average estimate of mu for a filtered dataset of only values of h0 that are rejected. The sample average of mu across tests is equal to the true value of mu in the first plot, which includes all values and allows for the a true calculation of mu derived from all samples. 
 
